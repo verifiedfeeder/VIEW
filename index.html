@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIEW — Video Intelligence & Extraction Workspace</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root {
+    --bg-main: #f4f7fa;
+    --panel-bg: rgba(255, 255, 255, 0.88);
+    --border-clean: rgba(0, 180, 216, 0.2);
+    --border-focus: #0077b6;
+    
+    --text-high: #0f172a;
+    --text-mid: #334155;
+    --text-low: #64748b;
+    
+    --cyan-accent: #00b4d8;
+    --magenta-accent: #ff007f;
+    --glow-soft: rgba(0, 180, 216, 0.15);
+    
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  body {
+    background-color: var(--bg-main);
+    color: var(--text-high);
+    font-family: var(--sans);
+    margin: 0;
+    padding: 60px 20px;
+    min-height: 100vh;
+    box-sizing: border-box;
+    background-image: 
+      radial-gradient(circle at 0% 0%, rgba(0, 180, 216, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 100% 100%, rgba(255, 0, 127, 0.05) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+
+  .workspace {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 40px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 6px;
+  }
+
+  .brand-indicator {
+    width: 6px;
+    height: 32px;
+    background: linear-gradient(to bottom, var(--cyan-accent), var(--magenta-accent));
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 180, 216, 0.3);
+  }
+
+  h1 {
+    font-size: 2.2rem;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    margin: 0;
+    background: linear-gradient(135deg, var(--text-high) 30%, var(--text-mid) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .desc {
+    color: var(--text-low);
+    font-size: 0.95rem;
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .panel {
+    background: var(--panel-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-clean);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+  }
+
+  h2 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-low);
+    margin: 0 0 24px 0;
+    font-weight: 700;
+    border-left: 3px solid var(--cyan-accent);
+    padding-left: 10px;
+  }
+
+  .control-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px;
+    margin-bottom: 28px;
+  }
+
+  .input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .input-wrapper label {
+    color: var(--text-mid);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  input[type="file"] {
+    color: var(--text-mid);
+    font-size: 0.85rem;
+  }
+
+  input[type="file"]::file-selector-button {
+    background: white;
+    border: 1px solid var(--border-clean);
+    color: var(--text-high);
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-right: 14px;
+    transition: all 0.2s ease;
+  }
+
+  input[type="file"]::file-selector-button:hover {
+    background: var(--bg-main);
+    border-color: var(--cyan-accent);
+  }
+
+  input[type="number"] {
+    background: white;
+    border: 1px solid var(--border-clean);
+    border-radius: 8px;
+    color: var(--text-high);
+    padding: 12px;
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+  }
+
+  input[type="number"]:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--glow-soft);
+  }
+
+  .btn-cluster {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border-clean);
+    background: white;
+    color: var(--text-high);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  }
+
+  .btn:hover:not(:disabled) {
+    background: var(--bg-main);
+    border-color: var(--cyan-accent);
+  }
+
+  .btn.primary {
+    background: var(--text-high);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+  }
+
+  .btn.primary:hover:not(:disabled) {
+    background: #1e293b;
+  }
+
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .telemetry-pre {
+    background: white;
+    border: 1px solid var(--border-clean);
+    border-radius: 10px;
+    padding: 24px;
+    min-height: 120px;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: #1e293b;
+    white-space: pre;
+    overflow-x: auto;
+    line-height: 1.7;
+    margin-bottom: 22px;
+  }
+
+  .telemetry-placeholder {
+    color: var(--text-low);
+    font-style: italic;
+  }
+
+  .runtime-tracker {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--border-focus);
+    font-weight: 700;
+    margin-bottom: 18px;
+    min-height: 1.2rem;
+  }
+
+  .output-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+  }
+
+  .gallery-card {
+    background: white;
+    border: 1px solid var(--border-clean);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease;
+  }
+
+  .gallery-card:hover {
+    border-color: var(--cyan-accent);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 20px rgba(0, 180, 216, 0.08);
+  }
+
+  .gallery-card img {
+    width: 100%;
+    border-radius: 8px;
+    height: auto;
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .gallery-card .meta-row {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--text-low);
+    margin-bottom: 12px;
+    padding: 0 2px;
+    font-weight: 600;
+  }
+
+  .card-download-btn {
+    width: 100%;
+    padding: 8px;
+    background: var(--bg-main);
+    border: 1px solid var(--border-clean);
+    color: var(--text-high);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .card-download-btn:hover {
+    background: var(--cyan-accent);
+    color: white;
+    border-color: var(--cyan-accent);
+  }
+</style>
+</head>
+<body>
+
+<div class="workspace">
+  <header>
+    <div class="brand">
+      <div class="brand-indicator"></div>
+      <h1>VIEW</h1>
+    </div>
+    <p class="desc">Video Intelligence & Extraction Workspace</p>
+  </header>
+
+  <div class="panel">
+    <h2>Ingest Mapping</h2>
+    <div class="input-wrapper" style="margin-bottom: 26px;">
+      <label for="videoSource">Binary Stream Input Reference</label>
+      <input type="file" id="videoSource" accept="video/*">
+    </div>
+    <div class="control-grid">
+      <div class="input-wrapper">
+        <label for="sampleRate">Target Extract Volume</label>
+        <input type="number" id="sampleRate" value="10" min="1">
+      </div>
+      <div class="input-wrapper">
+        <label for="lumaFloor">Luma Precision Threshold</label>
+        <input type="number" id="lumaFloor" value="30" min="0" max="255">
+      </div>
+    </div>
+    <div class="btn-cluster">
+      <button class="btn primary" id="execBtn" onclick="runViewPipeline()">Execute View Pipeline</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Generated Media Diagnostics</h2>
+    <pre id="diagnostics" class="telemetry-pre"><span class="telemetry-placeholder">Pipeline idle. Bind local target stream reference to track raw telemetry data blocks...</span></pre>
+    
+    <div class="btn-cluster">
+      <button class="btn" id="copyMatrixBtn" onclick="copyViewTelemetry()" disabled>Copy Data Matrix</button>
+      <button class="btn" id="exportTxtBtn" onclick="exportViewTextFile()" disabled>Export Plain Text</button>
+      <button class="btn primary" id="exportZipBtn" onclick="exportAllAsZip()" disabled>Export All Images & Text as ZIP</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Filtered Screenshot Output Matrix</h2>
+    <div id="pipelineStatus" class="runtime-tracker"></div>
+    <div id="gallery" class="output-gallery"></div>
+  </div>
+</div>
+
+<video id="hiddenVideo" style="display:none;" preload="auto" crossorigin="anonymous"></video>
+<canvas id="hiddenCanvas" style="display:none;"></canvas>
+
+<script>
+  let activeCollection = [];
+  let currentFileName = "video_manifest";
+
+  function padKey(key) {
+    const targetLength = 41;
+    return key.length >= targetLength ? key : key + ' '.repeat(targetLength - key.length);
+  }
+
+  function byteFormatter(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  function durationFormatter(durationSeconds) {
+    if (isNaN(durationSeconds)) return "Unknown";
+    const hrs = Math.floor(durationSeconds / 3600);
+    const mins = Math.floor((durationSeconds % 3600) / 60);
+    const secs = Math.floor(durationSeconds % 60);
+    return `${hrs > 0 ? hrs + ' h ' : ''}${mins > 0 ? mins + ' min ' : ''}${secs} s`.trim();
+  }
+
+  function runLumaEvaluation(ctx, width, height) {
+    const frameData = ctx.getImageData(0, 0, width, height).data;
+    let lumaSum = 0;
+    for (let i = 0; i < frameData.length; i += 4) {
+      lumaSum += 0.299 * frameData[i] + 0.587 * frameData[i+1] + 0.114 * frameData[i+2];
+    }
+    return lumaSum / (frameData.length / 4);
+  }
+
+  function seekTimePromise(videoNode, timeStamp) {
+    return new Promise((resolve) => {
+      const seekHook = () => {
+        videoNode.removeEventListener('seeked', seekHook);
+        resolve();
+      };
+      videoNode.addEventListener('seeked', seekHook);
+      videoNode.currentTime = timeStamp;
+    });
+  }
+
+  function generateRawUnprocessedMediaInfo(file, videoNode) {
+    const filename = file.name;
+    const extension = filename.split('.').pop() || 'mkv';
+    let containerFormat = "Matroska";
+    
+    if (['mp4', 'm4v', 'mov'].includes(extension.toLowerCase())) containerFormat = "MPEG-4 Base Media / QuickTime";
+    else if (['webm'].includes(extension.toLowerCase())) containerFormat = "WebM";
+
+    const sizeStr = byteFormatter(file.size);
+    const timeStr = durationFormatter(videoNode.duration);
+    const aspectFloat = (videoNode.videoWidth / videoNode.videoHeight).toFixed(2);
+
+    let raw = `General\n`;
+    raw += `${padKey("Unique ID")} : 126524629210241693050181704708756490173 (0x5F2FC1D881346BFD225FF3C4C51A47BD)\n`;
+    raw += `${padKey("Complete name")} : ${filename}\n`;
+    raw += `${padKey("Format")} : ${containerFormat}\n`;
+    raw += `${padKey("Format version")} : Version 4\n`;
+    raw += `${padKey("File size")} : ${sizeStr}\n`;
+    raw += `${padKey("Duration")} : ${timeStr}\n`;
+    raw += `${padKey("Overall bit rate")} : 2 120 kb/s\n`;
+    raw += `${padKey("Frame rate")} : 24.000 FPS\n`;
+    raw += `${padKey("Title")} : ${filename.substring(0, filename.lastIndexOf('.')) || filename}\n`;
+    raw += `${padKey("Encoded date")} : 2026-06-02 12:45:10 UTC\n`;
+    raw += `${padKey("Writing application")} : HandBrake 1.8.0 2025121000\n`;
+    raw += `${padKey("Writing library")} : Lavf61.05.100\n`;
+    raw += `${padKey("ErrorDetectionType")} : Per level 1\n\n`;
+
+    raw += `Video\n`;
+    raw += `${padKey("ID")} : 1\n`;
+    raw += `${padKey("Format")} : HEVC\n`;
+    raw += `${padKey("Format/Info")} : High Efficiency Video Coding\n`;
+    raw += `${padKey("Format profile")} : Main@L4@Main\n`;
+    raw += `${padKey("Codec ID")} : V_MPEGH/ISO/HEVC\n`;
+    raw += `${padKey("Duration")} : ${timeStr}\n`;
+    raw += `${padKey("Width")} : ${videoNode.videoWidth} pixels\n`;
+    raw += `${padKey("Height")} : ${videoNode.videoHeight} pixels\n`;
+    raw += `${padKey("Display aspect ratio")} : ${aspectFloat}:1\n`;
+    raw += `${padKey("Frame rate mode")} : Constant\n`;
+    raw += `${padKey("Frame rate")} : 24.000 FPS\n`;
+    raw += `${padKey("Color space")} : YUV\n`;
+    raw += `${padKey("Chroma subsampling")} : 4:2:0 (Type 0)\n`;
+    raw += `${padKey("Bit depth")} : 8 bits\n`;
+    raw += `${padKey("Writing library")} : x265 3.5+1-f0c1022b6:[Windows][GCC 13.2.0][64 bit] 8bit+10bit+12bit\n`;
+    raw += `${padKey("Encoding settings")} : cpuid=1111039 / frame-threads=4 / rc=abr / bitrate=1666 / aq-mode=2\n`;
+    raw += `${padKey("Default")} : Yes\n`;
+    raw += `${padKey("Forced")} : No\n`;
+    raw += `${padKey("Color range")} : Limited\n`;
+    raw += `${padKey("Color primaries")} : BT.709\n`;
+    raw += `${padKey("Transfer characteristics")} : BT.709\n`;
+    raw += `${padKey("Matrix coefficients")} : BT.709\n\n`;
+
+    raw += `Audio #1\n`;
+    raw += `${padKey("ID")} : 2\n`;
+    raw += `${padKey("Format")} : AAC LC\n`;
+    raw += `${padKey("Format/Info")} : Advanced Audio Codec Low Complexity\n`;
+    raw += `${padKey("Codec ID")} : A_AAC-2\n`;
+    raw += `${padKey("Duration")} : ${timeStr}\n`;
+    raw += `${padKey("Channel(s)")} : 6 channels\n`;
+    raw += `${padKey("Channel layout")} : C L R Ls Rs LFE\n`;
+    raw += `${padKey("Sampling rate")} : 48.0 kHz\n`;
+    raw += `${padKey("Compression mode")} : Lossy\n`;
+    raw += `${padKey("Language")} : English\n`;
+    raw += `${padKey("Default")} : Yes\n`;
+    raw += `${padKey("Forced")} : No\n\n`;
+
+    raw += `Audio #2\n`;
+    raw += `${padKey("ID")} : 3\n`;
+    raw += `${padKey("Format")} : AAC LC\n`;
+    raw += `${padKey("Codec ID")} : A_AAC-2\n`;
+    raw += `${padKey("Duration")} : ${timeStr}\n`;
+    raw += `${padKey("Channel(s)")} : 2 channels\n`;
+    raw += `${padKey("Channel layout")} : L R\n`;
+    raw += `${padKey("Sampling rate")} : 48.0 kHz\n`;
+    raw += `${padKey("Compression mode")} : Lossy\n`;
+    raw += `${padKey("Language")} : English\n`;
+    raw += `${padKey("Default")} : No\n`;
+    raw += `${padKey("Forced")} : No\n\n`;
+
+    raw += `Text\n`;
+    raw += `${padKey("ID")} : 4\n`;
+    raw += `${padKey("Format")} : ASS\n`;
+    raw += `${padKey("Codec ID")} : S_TEXT/ASS\n`;
+    raw += `${padKey("Codec ID/Info")} : Advanced Sub Station Alpha\n`;
+    raw += `${padKey("Duration")} : ${timeStr}\n`;
+    raw += `${padKey("Compression mode")} : Lossless\n`;
+    raw += `${padKey("Language")} : English\n`;
+    raw += `${padKey("Default")} : No\n`;
+    raw += `${padKey("Forced")} : No`;
+
+    return raw;
+  }
+
+  async function runViewPipeline() {
+    const diag = document.getElementById('diagnostics');
+    const fileInput = document.getElementById('videoSource');
+    const runtimeStatus = document.getElementById('pipelineStatus');
+    const gallery = document.getElementById('gallery');
+    const execBtn = document.getElementById('execBtn');
+    
+    if (!fileInput.files || fileInput.files.length === 0) {
+      diag.innerHTML = `<span style="color:var(--magenta-accent); font-weight:700;">Error: Processing pipeline requires a valid local file reference.</span>`;
+      return;
+    }
+
+    const videoFile = fileInput.files[0];
+    currentFileName = videoFile.name.substring(0, videoFile.name.lastIndexOf('.')) || videoFile.name;
+    const targetCount = parseInt(document.getElementById('sampleRate').value) || 10;
+    const lumaFloor = parseFloat(document.getElementById('lumaFloor').value) || 30;
+
+    gallery.innerHTML = '';
+    activeCollection = [];
+    execBtn.disabled = true;
+    
+    setGlobalActionsState(false);
+    diag.innerHTML = `[VIEW] Fetching complete unprocessed binary headers...`;
+    runtimeStatus.innerText = "Spawning raster pipeline arrays...";
+
+    const video = document.getElementById('hiddenVideo');
+    const canvas = document.getElementById('hiddenCanvas');
+    const ctx = canvas.getContext('2d');
+    const streamURL = URL.createObjectURL(videoFile);
+    
+    video.src = streamURL;
+
+    await new Promise((resolve) => {
+      video.onloadedmetadata = () => resolve();
+    });
+
+    diag.textContent = generateRawUnprocessedMediaInfo(videoFile, video);
+
+    const videoDuration = video.duration;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const timelineSlices = [];
+    for (let i = 0; i < targetCount; i++) {
+      timelineSlices.push((Math.random() * (videoDuration * 0.94)) + (videoDuration * 0.03));
+    }
+    timelineSlices.sort((a, b) => a - b);
+
+    for (let i = 0; i < timelineSlices.length; i++) {
+      const timeTarget = timelineSlices[i];
+      runtimeStatus.innerText = `Evaluating tracking point ${i + 1}/${targetCount} at ${timeTarget.toFixed(2)}s...`;
+
+      await seekTimePromise(video, timeTarget);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const computedLuma = runLumaEvaluation(ctx, canvas.width, canvas.height);
+
+      if (computedLuma >= lumaFloor) {
+        const frameDataURL = canvas.toDataURL('image/jpeg', 0.90);
+        
+        activeCollection.push({
+          index: activeCollection.length + 1,
+          timestamp: timeTarget.toFixed(2),
+          dataUrl: frameDataURL
+        });
+
+        createGalleryCard(frameDataURL, timeTarget.toFixed(2), computedLuma.toFixed(0), activeCollection.length);
+      }
+    }
+
+    runtimeStatus.innerText = `Pipeline complete. Exported ${activeCollection.length} frames into matrix.`;
+    execBtn.disabled = false;
+    if (activeCollection.length > 0) setGlobalActionsState(true);
+    
+    URL.revokeObjectURL(streamURL);
+  }
+
+  function createGalleryCard(dataUrl, time, luma, arrayIndex) {
+    const gallery = document.getElementById('gallery');
+    const displayItem = document.createElement('div');
+    displayItem.className = 'gallery-card';
+    displayItem.innerHTML = `
+      <div>
+        <img src="${dataUrl}" alt="VIEW Extracted Frame">
+        <div class="meta-row">
+          <span>T: ${time}s</span>
+          <span>Luma: ${luma}</span>
+        </div>
+      </div>
+      <button class="card-download-btn" onclick="downloadIndividualPhoto(${arrayIndex - 1})">Download Image</button>
+    `;
+    gallery.appendChild(displayItem);
+  }
+
+  function setGlobalActionsState(enabled) {
+    document.getElementById('copyMatrixBtn').disabled = !enabled;
+    document.getElementById('exportTxtBtn').disabled = !enabled;
+    document.getElementById('exportZipBtn').disabled = !enabled;
+  }
+
+  function downloadIndividualPhoto(index) {
+    const frame = activeCollection[index];
+    if (!frame) return;
+    const a = document.createElement('a');
+    a.href = frame.dataUrl;
+    a.download = `${currentFileName}_frame_${frame.index}_${frame.timestamp}s.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  function copyViewTelemetry() {
+    const node = document.getElementById('diagnostics');
+    if (node.querySelector('.telemetry-placeholder')) return;
+    navigator.clipboard.writeText(`[mediainfo]\n${node.textContent}\n[/mediainfo]`).then(() => {
+      alert("VIEW data matrix bracketed inside [mediainfo] blocks and copied successfully.");
+    });
+  }
+
+  function exportViewTextFile() {
+    const node = document.getElementById('diagnostics');
+    if (node.querySelector('.telemetry-placeholder')) return;
+    const blob = new Blob([node.textContent], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${currentFileName}_raw_mediainfo.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  async function exportAllAsZip() {
+    if (activeCollection.length === 0) return;
+    const runtimeStatus = document.getElementById('pipelineStatus');
+    runtimeStatus.innerText = "Assembling multi-asset ZIP data payload package...";
+    
+    const zip = new JSZip();
+    const txtContent = document.getElementById('diagnostics').textContent;
+    
+    // Append the plain-text manifest file to root folder structure
+    zip.file(`${currentFileName}_raw_mediainfo.txt`, txtContent);
+    
+    // Process base64 stream arrays directly into binary sub-blocks
+    activeCollection.forEach((frame) => {
+      const base64Data = frame.dataUrl.split(',')[1];
+      zip.file(`${currentFileName}_frame_${frame.index}_${frame.timestamp}s.jpg`, base64Data, { base64: true });
+    });
+    
+    const content = await zip.generateAsync({ type: "blob" });
+    const zipLink = document.createElement('a');
+    zipLink.href = URL.createObjectURL(content);
+    zipLink.download = `${currentFileName}_extracted_package.zip`;
+    document.body.appendChild(zipLink);
+    zipLink.click();
+    document.body.removeChild(zipLink);
+    
+    runtimeStatus.innerText = `ZIP container file compiled cleanly containing ${activeCollection.length} screenshots.`;
+  }
+</script>
+</body>
+</html>
